@@ -3,8 +3,7 @@ import { fetchPosts } from 'src/rtk/features/posts/postsSlice'
 import { PostId } from 'src/types'
 import { PublicPostPreviewById } from '../posts/PublicPostPreview'
 import { InnerActivities } from './InnerActivities'
-import { LoadMoreFn } from './NotificationUtils'
-import { ActivityProps, LoadMoreProps } from './types'
+import { ActivityProps, LoadMoreFn, LoadMoreProps } from './types'
 
 export const getLoadMoreFeedFn = (getActivity: LoadMoreFn, keyId: 'post_id' | 'comment_id') =>
   async (props: LoadMoreProps): Promise<PostId[]> => {
@@ -16,15 +15,15 @@ export const getLoadMoreFeedFn = (getActivity: LoadMoreFn, keyId: 'post_id' | 'c
     const activity = await getActivity(address, offset, size) || []
     const postIds = activity.map(x => x[keyId]!)
 
-    await dispatch(fetchPosts({ api: subsocial, ids: postIds }))
-  
+    await dispatch(fetchPosts({ api: subsocial, ids: postIds, myAddress: address }))
     return postIds
   }
 
 export const FeedActivities = (props: ActivityProps<PostId>) => {
+
   return <InnerActivities
     {...props}
     getKey={postId => postId}
-    renderItem={(postId) => <PublicPostPreviewById postId={postId} />}
+    renderItem={(postId: PostId) => <PublicPostPreviewById postId={postId} />}
   />
 }
