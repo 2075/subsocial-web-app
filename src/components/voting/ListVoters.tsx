@@ -122,11 +122,11 @@ const InnerModalVoters = (props: VotersProps) => {
   )
 }
 
-const useGetReactionIdsByPostId = (id: BN) => useGetSubstrateIdsById<ReactionId>({ id, pallete: 'reactions', method: 'reactionIdsByPostId' })
+const useCreateReactionIdsByPostId = (id: BN) => useGetSubstrateIdsById<ReactionId>({ id, pallete: 'reactions', method: 'reactionIdsByPostId' })
 
 // TODO use redux
 export const PostVoters = (props: VotersProps) => {
-  const { loading, entities } = useGetReactionIdsByPostId(props.id)
+  const { loading, entities } = useCreateReactionIdsByPostId(props.id)
 
   if (loading) return <Loading label='Loading post reactions...' />
 

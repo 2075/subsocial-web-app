@@ -5,7 +5,7 @@ import { upsertContent } from '../contents/contentsSlice'
 import { removePost } from '../posts/postsSlice'
 import { upsertReplyIdsByPostId, fetchPostReplyIds, SelectOnePostRepliesArgs, ReplyIdsByPostId, selectManyReplyIds, selectReplyIdsEntities } from './repliesSlice'
 import { useActions } from 'src/rtk/app/helpers'
-import { useGetReloadPosts } from '../posts/postsHooks'
+import { useCreateReloadPosts } from '../posts/postsHooks'
 
 export const useFetchReplyIdsByPostId = (args: SelectOnePostRepliesArgs) => {
   return useFetchEntity(selectManyReplyIds, fetchPostReplyIds, args)
@@ -19,11 +19,11 @@ type UpsertReplyIdByPostIdProps = {
 export const useRemoveReply = () => {
   const replyIdsByParentId = useAppSelector(state => selectReplyIdsEntities(state))
 
-  return useActions<UpsertReplyIdByPostIdProps>(({ dispatch, args: { replyId: removebleId, parentId } }) => {
+  return useActions<UpsertReplyIdByPostIdProps>(({ dispatch, args: { replyId: idToRemove, parentId } }) => {
     const oldReplyIds = replyIdsByParentId[parentId]?.replyIds || []
-    dispatch(removePost(removebleId))
+    dispatch(removePost(idToRemove))
     upsertReplyIdsByPostId({
-      replyIds: oldReplyIds.filter(replyId => replyId !== removebleId),
+      replyIds: oldReplyIds.filter(replyId => replyId !== idToRemove),
       id: parentId
     })
   })
@@ -36,7 +36,7 @@ type UpsertReplies = {
 
 export const useUpsertReplies = () => {
   const replyIdsByParentId = useAppSelector(state => selectReplyIdsEntities(state))
-  const reloadPosts = useGetReloadPosts()
+  const reloadPosts = useCreateReloadPosts()
 
   return useActions<UpsertReplies>(async ({ 
     dispatch,
@@ -64,25 +64,25 @@ const setUpsertOneArgs = ({ parentId, reply }: CommonReplyArgs) => ({
 })
 
 type ChangeRepliesArgs = CommonReplyArgs & {
-  removableId: PostId,
+  idToRemove: PostId,
   rootPostId: PostId
 }
 
-export const useChangeReplies = () => {
+export const useCreateChangeReplies = () => {
   const upsertReplies = useUpsertReplies()
   const removeReply = useRemoveReply()
 
-  return ({ removableId, ...args }: ChangeRepliesArgs) => {
+  return ({ idToRemove, ...args }: ChangeRepliesArgs) => {
     const { parentId, rootPostId } = args
 
     if (!parentId) return 
     
-    removeReply({ replyId: removableId, parentId })
+    removeReply({ replyId: idToRemove, parentId })
     upsertReplies({ ...setUpsertOneArgs(args), rootPostId })
   }
 }
 
-const useUpsertContent = () => useActions<CommonContent & HasId>(({ dispatch, args }) => {
+const useCreateUpsertContent = () => useActions<CommonContent & HasId>(({ dispatch, args }) => {
     dispatch(upsertContent(args))
 })
 
@@ -91,9 +91,9 @@ type UpsertReplyWithContentArgs = Omit<CommonReplyArgs, 'parentId'> & {
   parentId?: PostId
 }
 
-export const useUpsertReplyWithContent = () => {
+export const useCreateUpsertReplyWithContent = () => {
   const upsertReplies = useUpsertReplies()
-  const upsertContent = useUpsertContent()
+  const upsertContent = useCreateUpsertContent()
 
   return ({ parentId, content, ...args }: UpsertReplyWithContentArgs) => {
     parentId && upsertReplies(setUpsertOneArgs({ ...args, parentId }))

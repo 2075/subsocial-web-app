@@ -24,8 +24,7 @@ export type ProfileVisibility = CommonVisibility
 
 type Args = {
   visibility?: ProfileVisibility
-  withContent?: boolean,
-  reload?: boolean
+  withContent?: boolean
 }
 
 export type SelectProfileArgs = SelectOneArgs<Args>
@@ -72,7 +71,7 @@ export const fetchProfiles = createAsyncThunk<ProfileStruct[], FetchProfilesArgs
     structs.forEach((structOpt, i) => {
       if (structOpt.isSome) {
         structWithIdArr.push({
-          id: ids[i],
+          id: newIds[i],
           struct: structOpt.unwrap()
         })
       }
