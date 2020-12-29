@@ -3,21 +3,21 @@ import React, { FC } from 'react'
 import { SpaceId } from 'src/types'
 import { useFetchSpaces } from 'src/rtk/app/hooks'
 import { fetchSpaces } from 'src/rtk/features/spaces/spacesSlice'
-import { withServerRedux } from 'src/rtk/app/withServerRedux'
+import { getInitialPropsWithRedux } from 'src/rtk/app'
 import { stringifyBns } from 'src/utils'
 import { PaginatedList } from '../lists/PaginatedList'
 import { PageContent } from '../main/PageWrapper'
 import { approxCountOfPublicSpaces, getReversePageOfSpaceIds } from '../utils/getIds'
 import { CreateSpaceButton } from './helpers'
-import { ViewSpace } from './ViewSpace'
 import { Loading } from '../utils'
+import { SpacePreview } from './SpacePreview'
+
+const getTitle = (count: number | BN) => `Explore Spaces (${count})`
 
 type Props = {
   spaceIds: SpaceId[]
   totalSpaceCount?: number
 }
-
-const getTitle = (count: number | BN) => `Explore Spaces (${count})`
 
 export const ListAllSpaces = (props: Props) => {
   const { spaceIds, totalSpaceCount = 0 } = props
@@ -35,14 +35,7 @@ export const ListAllSpaces = (props: Props) => {
         noDataDesc='There are no spaces yet'
         noDataExt={<CreateSpaceButton />}
         getKey={item => item.id}
-        renderItem={(item) =>
-          <ViewSpace
-            {...props}
-            spaceData={item}
-            withFollowButton
-            preview
-          />
-        }
+        renderItem={(item) => <SpacePreview space={item} />}
       />
     </div>
   )
@@ -62,7 +55,7 @@ const ListAllSpacesPage: FC<Props> = (props) => {
   </PageContent>
 }
 
-withServerRedux(ListAllSpacesPage, async ({ context, subsocial, dispatch }) => {
+getInitialPropsWithRedux(ListAllSpacesPage, async ({ context, subsocial, dispatch }) => {
   const { query } = context
   const { substrate } = subsocial
 

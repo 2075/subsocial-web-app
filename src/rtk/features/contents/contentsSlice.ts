@@ -1,11 +1,11 @@
+import { CommonFetchParamsAndIds } from './../../app/helpers'
 import { AsyncThunk, createAsyncThunk, createEntityAdapter, createSlice } from '@reduxjs/toolkit'
-import { CommentContent, CommonContent, PostContent, ProfileContent, SharedPostContent, SpaceContent } from '@subsocial/types'
-import { ApiAndIds, createSelectUnknownIds, SelectByIdFn, ThunkApiConfig } from 'src/rtk/app/helpers'
+import { HasId, CommentContent, CommonContent, PostContent, ProfileContent, SharedPostContent, SpaceContent, DerivedContent, convertToDerivedContent } from 'src/types'
+import { createFetchOne, createSelectUnknownIds, SelectByIdFn, ThunkApiConfig } from 'src/rtk/app/helpers'
 import { RootState } from 'src/rtk/app/rootReducer'
-import { HasId } from 'src/types'
 
 /** Content with id */
-type Content<C extends CommonContent = CommonContent> = HasId & C
+type Content<C extends CommonContent = CommonContent> = HasId & DerivedContent<C>
 
 type SelectByIdResult<C extends CommonContent> = SelectByIdFn<Content<C>>
 
@@ -32,9 +32,9 @@ export const {
 
 const selectUnknownContentIds = createSelectUnknownIds(selectContentIds)
 
-type FetchContentFn<C extends CommonContent> = AsyncThunk<Content<C>[], ApiAndIds, ThunkApiConfig>
+type FetchContentFn<C extends CommonContent> = AsyncThunk<Content<C>[], CommonFetchParamsAndIds, ThunkApiConfig>
 
-export const fetchContents = createAsyncThunk<Content[], ApiAndIds, ThunkApiConfig>(
+export const fetchContents = createAsyncThunk<Content[], CommonFetchParamsAndIds, ThunkApiConfig>(
   'contents/fetchMany',
   async ({ api, ids }, { getState }) => {
 
@@ -45,8 +45,10 @@ export const fetchContents = createAsyncThunk<Content[], ApiAndIds, ThunkApiConf
     }
 
     const contents = await api.ipfs.getContentArray(newIds as string[])
-    return Object.entries(contents)
-      .map(([ id, content ]) => ({ id, ...content }))
+    return Object.entries(contents).map(([ id, content ]) => {
+      const derivedContent = convertToDerivedContent(content) as CommentContent
+      return { id, ...derivedContent } 
+    })
   }
 )
 
@@ -56,7 +58,7 @@ export const fetchPostContents = fetchContents as FetchContentFn<PostContent>
 export const fetchCommentContents = fetchContents as FetchContentFn<CommentContent>
 export const fetchSharedPostContents = fetchContents as FetchContentFn<SharedPostContent>
 
-// export const fetchContent = createFetchOne(fetchContents)
+export const fetchContent = createFetchOne(fetchContents)
 
 const contents = createSlice({
   name: 'contents',

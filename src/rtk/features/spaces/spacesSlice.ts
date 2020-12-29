@@ -2,7 +2,7 @@ import { createAsyncThunk, createEntityAdapter, createSlice, EntityId } from '@r
 import { getFirstOrUndefined } from '@subsocial/utils'
 import { createFetchOne, createSelectUnknownIds, FetchManyArgs, /* FetchOneArgs, */ HasHiddenVisibility, SelectManyArgs, selectManyByIds, SelectOneArgs, ThunkApiConfig } from 'src/rtk/app/helpers'
 import { RootState } from 'src/rtk/app/rootReducer'
-import { flattenSpaceStructs, getUniqueContentIds, getUniqueOwnerIds, ProfileData, SpaceStruct, SpaceWithSomeDetails } from 'src/types'
+import { flattenSpaceStructs, getUniqueContentIds, getUniqueOwnerIds, ProfileData, SpaceId, SpaceStruct, SpaceWithSomeDetails } from 'src/types'
 import { idsToBns } from 'src/types/utils'
 import { fetchContents, selectSpaceContentById } from '../contents/contentsSlice'
 import { fetchProfiles, selectProfiles } from '../profiles/profilesSlice'
@@ -34,9 +34,6 @@ export type SelectSpacesArgs = SelectManyArgs<Args>
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 // type FetchSpaceArgs = FetchOneArgs<Args>
 type FetchSpacesArgs = FetchManyArgs<Args>
-
-// const _selectSpace = (state: RootState, id: EntityId): SpaceData | undefined =>
-//   selectOneById(state, id, selectSpaceStructById, selectSpaceContentById)
 
 const _selectSpacesByIds = (state: RootState, ids: EntityId[]) =>
   selectManyByIds(state, ids, selectSpaceStructById, selectSpaceContentById)
@@ -84,13 +81,17 @@ const selectUnknownSpaceIds = createSelectUnknownIds(selectSpaceIds)
 
 export const fetchSpaces = createAsyncThunk<SpaceStruct[], FetchSpacesArgs, ThunkApiConfig>(
   'spaces/fetchMany',
-  async ({ api, ids, withContent = true, withOwner = true }, { getState, dispatch }) => {
+  async ({ api, ids, withContent = true, withOwner = true, reload }, { getState, dispatch }) => {
 
-    const newIds = selectUnknownSpaceIds(getState(), ids)
-    if (!newIds.length) {
-      // Nothing to load: all ids are known and their spaces are already loaded.
-      return []
-    }
+    let newIds: SpaceId[] = ids as string[]
+
+    if (!reload) {
+      newIds = selectUnknownSpaceIds(getState(), ids)
+      if (!newIds.length) {
+        // Nothing to load: all ids are known and their spaces are already loaded.
+        return []
+      }
+    } 
 
     const structs = await api.substrate.findSpaces({ ids: idsToBns(newIds) })
     const entities = flattenSpaceStructs(structs)

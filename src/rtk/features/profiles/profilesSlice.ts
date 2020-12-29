@@ -1,7 +1,7 @@
 import { Option } from '@polkadot/types'
-import { createAsyncThunk, createEntityAdapter, createSlice } from '@reduxjs/toolkit'
+import { EntityId, createAsyncThunk, createEntityAdapter, createSlice } from '@reduxjs/toolkit'
 import { SocialAccount } from '@subsocial/types/substrate/interfaces'
-import { CommonVisibility, createFetchOne, createSelectUnknownIds, FetchManyArgs, SelectManyArgs, selectManyByIds, SelectOneArgs, ThunkApiConfig } from 'src/rtk/app/helpers'
+import { CommonVisibility, createFetchOne, createSelectUnknownIds, FetchManyArgs, SelectManyArgs, selectManyByIds, SelectOneArgs, selectOneById, ThunkApiConfig } from 'src/rtk/app/helpers'
 import { RootState } from 'src/rtk/app/rootReducer'
 import { flattenProfileStructs, getUniqueContentIds, ProfileData, ProfileStruct, SocialAccountWithId } from 'src/types'
 import { asString } from 'src/utils'
@@ -34,8 +34,8 @@ export type SelectProfilesArgs = SelectManyArgs<Args>
 // type FetchProfileArgs = FetchOneArgs<Args>
 type FetchProfilesArgs = FetchManyArgs<Args>
 
-// export const selectProfile = (state: RootState, id: EntityId): ProfileData | undefined =>
-//   selectOneById(state, id, selectProfileStructById, selectProfileContentById)
+export const selectProfile = (state: RootState, id: EntityId): ProfileData | undefined =>
+  selectOneById(state, id, selectProfileStructById, selectProfileContentById)
 
 // TODO apply visibility filter
 export const selectProfiles = (state: RootState, { ids }: SelectProfilesArgs): ProfileData[] =>
@@ -45,14 +45,19 @@ const selectUnknownProfileIds = createSelectUnknownIds(selectProfileIds)
 
 export const fetchProfiles = createAsyncThunk<ProfileStruct[], FetchProfilesArgs, ThunkApiConfig>(
   'profiles/fetchMany',
-  async ({ api, ids: accountIds, withContent = true }, { getState, dispatch }) => {
+  async ({ api, ids: accountIds, withContent = true, reload }, { getState, dispatch }) => {
 
     const ids = accountIds.map(asString)
-    const newIds = selectUnknownProfileIds(getState(), ids)
-    if (!newIds.length) {
-      // Nothing to load: all ids are known and their profiles are already loaded.
-      return []
+
+    let newIds = ids
+    if (!reload) {
+      newIds = selectUnknownProfileIds(getState(), ids)
+      if (!newIds.length) {
+        // Nothing to load: all ids are known and their profiles are already loaded.
+        return []
+      }
     }
+
 
     // TODO rewrite: findSocialAccounts should return SocialAccount with id: AccountId
     // const structs = await api.substrate.findSocialAccounts(newIds)
@@ -66,7 +71,7 @@ export const fetchProfiles = createAsyncThunk<ProfileStruct[], FetchProfilesArgs
     structs.forEach((structOpt, i) => {
       if (structOpt.isSome) {
         structWithIdArr.push({
-          id: ids[i],
+          id: newIds[i],
           struct: structOpt.unwrap()
         })
       }

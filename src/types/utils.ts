@@ -1,5 +1,5 @@
 import BN from 'bn.js'
-import { PostId, /* SpaceId */ } from '@subsocial/types/substrate/interfaces'
+import { PostId } from '@subsocial/types/substrate/interfaces'
 import {
   ProfileData as OldProfileData,
   SpaceData as OldSpaceData,
@@ -7,6 +7,9 @@ import {
   PostWithSomeDetails as OldPostWithSomeDetails,
   PostWithAllDetails as OldPostWithAllDetails,
   AnyAccountId,
+  CommonContent,
+  PostContent,
+  SpaceContent,
 } from '@subsocial/types'
 import {
   EntityId,
@@ -14,11 +17,12 @@ import {
   SpaceData,
   PostData,
   CommentData,
-  // SharedPostData,
   PostWithAllDetails,
   PostWithSomeDetails,
+  DerivedContent,
 } from './dto'
 import { flattenPostStruct, flattenProfileStruct, flattenSpaceStruct } from './flatteners'
+import { mdToText, summarize } from 'src/utils'
 
 export type AnyId = EntityId | BN
 
@@ -56,20 +60,20 @@ export function asCommentData (postData: PostData): CommentData {
 
 export function convertToNewProfileData (accountId: AnyAccountId, old: OldProfileData): ProfileData {
   const struct = flattenProfileStruct(accountId, old.struct)
-  return { id: struct.id, struct, content: old.content }
+  return { id: struct.id, struct, content: convertToDerivedContent(old.content!) }
 }
 
 export function convertToNewProfileDataArray (accountIds: AnyAccountId[], oldArr: OldProfileData[]): ProfileData[] {
   return accountIds.map((accountId, i) => {
     const old = oldArr[i]
     const struct = flattenProfileStruct(accountId, old.struct)
-    return { id: struct.id, struct, content: old.content }
+    return { id: struct.id, struct, content: convertToDerivedContent(old.content!) }
   })
 }
 
 export function convertToNewSpaceData (old: OldSpaceData): SpaceData {
   const struct = flattenSpaceStruct(old.struct)
-  return { id: struct.id, struct, content: old.content }
+  return { id: struct.id, struct, content: convertToDerivedContent(old.content!) }
 }
 
 export function convertToNewSpaceDataArray (old: OldSpaceData[]): SpaceData[] {
@@ -78,7 +82,7 @@ export function convertToNewSpaceDataArray (old: OldSpaceData[]): SpaceData[] {
 
 export function convertToNewPostData (old: OldPostData): PostData {
   const struct = flattenPostStruct(old.struct)
-  return { id: struct.id, struct, content: old.content }
+  return { id: struct.id, struct, content: convertToDerivedContent(old.content!) }
 }
 
 export function convertToNewPostDataArray (old: OldPostData[]): PostData[] {
@@ -123,4 +127,29 @@ export function isUnlisted (data?: SpaceOrPostData) {
 
 export function isPublic (data?: SpaceOrPostData) {
   return !isUnlisted(data)
+}
+
+type MaybeSpaceContent = Pick<SpaceContent, 'about'>
+
+type MaybePostContent = Pick<PostContent, 'body' | 'title'>
+
+export function convertToDerivedContent
+  <T extends CommonContent = CommonContent>
+  (content?: T): DerivedContent<T> | undefined
+{
+  if (!content) return undefined
+
+  const maybeSpace = (content as MaybeSpaceContent)
+  const aboutPost = (content as MaybePostContent)
+  const md = maybeSpace.about || aboutPost.body || aboutPost.title
+
+  const text = mdToText(md)?.trim() || ''
+  const summary = summarize(text)
+  const isShowMore = text.length > summary.length
+
+  return {
+    ...content,
+    summary,
+    isShowMore
+  }
 }

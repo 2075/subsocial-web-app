@@ -2,11 +2,11 @@ import { Option } from '@polkadot/types/codec'
 import { AccountId } from '@polkadot/types/interfaces/runtime'
 import { bool } from '@polkadot/types/primitive'
 import { EntityId } from '@reduxjs/toolkit'
-import { AnyAccountId, CommonContent } from '@subsocial/types'
+import { AnyAccountId } from '@subsocial/types'
 import { Content, Post, SocialAccount, Space, WhoAndWhen } from '@subsocial/types/substrate/interfaces'
 import { notEmptyObj } from '@subsocial/utils'
 import BN from 'bn.js'
-import { EntityData } from './dto'
+import { CommonContent, EntityData } from './dto'
 
 type Id = string
 
